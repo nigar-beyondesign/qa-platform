@@ -4,13 +4,13 @@ const { defineConfig, devices } = require('@playwright/test');
 module.exports = defineConfig({
   testDir: './tests',
   timeout: 300000,         // 5min pro Test – für langsame Shops mit vielen Produkten
-  retries: 1,
+  retries: 0,
   workers: 1,              // Sequential – wichtig für Cart-State
 
   use: {
     trace:      'on',                    // Immer Trace aufzeichnen
     screenshot: 'on',                    // Screenshot bei jedem Schritt
-    video:      'on-first-retry',        // Video beim Retry
+    video:      'on',                    // Immer Video aufzeichnen
     viewport:   { width: 1440, height: 900 },
     locale:     'de-DE',
     timezoneId: 'Europe/Berlin',
