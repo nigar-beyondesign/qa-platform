@@ -1,0 +1,25 @@
+{
+  "client": "Healthroutine",
+  "url": "https://healthroutine.de",
+  "platform": "shopify",
+  "timestamp": "2026-05-02T19:43:59.832Z",
+  "issues": [
+    {
+      "area": "Cart",
+      "type": "Rabattcode-Feld fehlt",
+      "description": "Kein Discount-Input im Cart",
+      "expected": "Rabattcode-Eingabe vorhanden",
+      "actual": "Fehlt",
+      "severity": "Low",
+      "url": "https://healthroutine.de/cart",
+      "steps": ""
+    }
+  ],
+  "productsCrawled": 0,
+  "variantsTested": 0,
+  "atcResults": [],
+  "checkoutResults": [],
+  "consoleErrors": [],
+  "performance": {},
+  "seo": {}
+}
