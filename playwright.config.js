@@ -3,7 +3,7 @@ const { defineConfig, devices } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: './tests',
-  timeout: 90000,          // 90s pro Test – für langsame Shops
+  timeout: 300000,         // 5min pro Test – für langsame Shops mit vielen Produkten
   retries: 1,
   workers: 1,              // Sequential – wichtig für Cart-State
 

@@ -12,6 +12,7 @@ const config  = require('../qa.config.js');
 const crawler = require('./crawler.js');
 
 const BASE = config.url.replace(/\/$/, '');
+const CRAWL_CACHE = path.join(require('os').tmpdir(), `qa-crawl-${process.env.QA_CLIENT_KEY || 'default'}.json`);
 
 // ── Globale Ergebnisse ─────────────────────────────────
 const RESULTS = {
@@ -130,6 +131,9 @@ test('Schritt 1: Shop crawlen – Collections & Produkte entdecken', async ({ pa
   crawledData = await crawler.crawlShop(page, BASE);
   RESULTS.productsCrawled = crawledData.productUrls.length;
 
+  // Für Retries persistieren (neuer Worker hat leere crawledData)
+  fs.writeFileSync(CRAWL_CACHE, JSON.stringify(crawledData));
+
   expect(crawledData.productUrls.length).toBeGreaterThan(0);
   console.log(`\n  ✓ Crawl abgeschlossen: ${crawledData.productUrls.length} Produkte\n`);
 });
@@ -142,8 +146,13 @@ test('Schritt 2: PDP & Add-to-Cart – alle Produkte & Varianten', async ({ page
   page.on('console', msg => { if (['error','warning'].includes(msg.type())) consoleErrors.push({ type: msg.type(), text: msg.text().slice(0,150) }); });
 
   if (!crawledData.productUrls.length) {
-    console.log('  ⚠ Keine Produkte gecrawlt – Schritt 1 zuerst ausführen');
-    return;
+    try {
+      crawledData = JSON.parse(fs.readFileSync(CRAWL_CACHE, 'utf8'));
+      console.log(`  ↩ Crawl-Daten aus Cache geladen: ${crawledData.productUrls.length} Produkte`);
+    } catch {
+      console.log('  ⚠ Keine Produkte gecrawlt – Schritt 1 zuerst ausführen');
+      return;
+    }
   }
 
   const maxVariants = config.crawl?.maxVariants || 3;
