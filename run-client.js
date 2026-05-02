@@ -50,25 +50,55 @@ async function runClient(key, client) {
     // Playwright gibt exit code != 0 wenn Tests fehlschlagen – das ist normal
   }
 
-  // Report mit Timestamp lokal speichern
   const resultsPath = path.join(__dirname, 'reports', 'qa-results.json');
   const timestamp   = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
 
-  if (fs.existsSync(resultsPath)) {
-    fs.copyFileSync(resultsPath, path.join(reportDir, timestamp + '-results.json'));
-    var mdPath = path.join(__dirname, 'reports', 'qa-report.md');
-    if (fs.existsSync(mdPath)) {
-      fs.copyFileSync(mdPath, path.join(reportDir, timestamp + '-report.md'));
-    }
-    console.log('\n  ✓ Report lokal gespeichert: reports/' + key + '/');
+  if (!fs.existsSync(resultsPath)) {
+    console.log('  ⚠ Keine Ergebnisse gefunden.');
+    return false;
   }
+
+  // Report anreichern: summary, status, filename, trigger hinzufügen
+  let data;
+  try {
+    data = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
+  } catch (e) {
+    console.log('  ⚠ Report konnte nicht gelesen werden: ' + e.message);
+    return false;
+  }
+
+  const issues    = data.issues || [];
+  const atcPass   = (data.atcResults || []).filter(r => r.status === 'pass').length;
+  const atcFail   = (data.atcResults || []).filter(r => r.status === 'fail').length;
+  const critical  = issues.filter(i => i.severity === 'Critical').length;
+  const high      = issues.filter(i => i.severity === 'High').length;
+  const medium    = issues.filter(i => i.severity === 'Medium').length;
+  const low       = issues.filter(i => i.severity === 'Low').length;
+
+  data.summary  = { critical, high, medium, low, atcPass, atcFail, total: issues.length };
+  data.status   = critical > 0 ? 'fail' : 'pass';
+  data.filename = timestamp + '-results.json';
+  data.trigger  = 'manual';
+
+  // Videos zu Google Drive hochladen (vor Railway, damit driveUrl mit hochgeladen wird)
+  console.log('\n  ↑ Lade Videos zu Google Drive hoch...');
+  const driveUrl = await uploadVideos(key, timestamp);
+  if (driveUrl) data.driveUrl = driveUrl;
+
+  // Angereicherte Daten zurückschreiben
+  fs.writeFileSync(resultsPath, JSON.stringify(data, null, 2), 'utf8');
+
+  // Lokal mit Timestamp speichern
+  fs.copyFileSync(resultsPath, path.join(reportDir, timestamp + '-results.json'));
+  const mdPath = path.join(__dirname, 'reports', 'qa-report.md');
+  if (fs.existsSync(mdPath)) {
+    fs.copyFileSync(mdPath, path.join(reportDir, timestamp + '-report.md'));
+  }
+  console.log('  ✓ Report lokal gespeichert: reports/' + key + '/');
 
   // Zu Railway hochladen
   console.log('\n  ↑ Lade Report zu Railway hoch...');
   await uploadReport(key, resultsPath);
-
-  // Videos zu Google Drive hochladen
-  await uploadVideos(key, timestamp);
 
   return true;
 }

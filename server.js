@@ -164,7 +164,7 @@ const server = http.createServer(async (req, res) => {
   const mdMatch = urlPath.match(/^\/api\/report-md\/([^/]+)\/([^/]+)$/);
   if (mdMatch && method === 'GET') {
     const [, key, id] = mdMatch;
-    const report = (store.reports[key] || []).find(r => r.id === id);
+    const report = (store.reports[key] || []).find(r => r.id === id || r.filename === id);
     if (!report) return json(res, { error: 'not found' }, 404);
 
     const md = buildMarkdown(report);

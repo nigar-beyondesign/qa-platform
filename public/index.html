@@ -443,7 +443,7 @@ function renderRunsTable() {
       <td><span style="color:var(--green);">${sum.atcPass??'—'}</span></td>
       <td><span style="color:var(--red);">${sum.atcFail??'—'}</span></td>
       <td style="font-size:11px;color:var(--dim);">${r.trigger==='auto'?'🕐 Auto':'▶ Manuell'}</td>
-      <td style="font-size:11px;color:var(--dim);">Report →</td>
+      <td style="font-size:11px;">${r.driveUrl?`<a href="${r.driveUrl}" target="_blank" style="color:var(--blue);text-decoration:none;" onclick="event.stopPropagation()">▶ Video</a>`:`<span style="color:var(--dim)">—</span>`} &nbsp; <span style="color:var(--dim)">Report →</span></td>
     </tr>`;
   }).join('');
 }
@@ -508,8 +508,9 @@ function openReport(filename) {
           </div>
         </div>`).join('')}
 
-    <div style="margin-top:14px;">
+    <div style="margin-top:14px;display:flex;gap:8px;">
       <button class="btn btn-ghost" onclick="downloadReport('${filename}')">↓ Markdown herunterladen</button>
+      ${r.driveUrl ? `<a href="${r.driveUrl}" target="_blank" class="btn btn-ghost" style="text-decoration:none;">▶ Videos in Google Drive</a>` : ''}
     </div>`;
 }
 

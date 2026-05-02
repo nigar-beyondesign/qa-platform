@@ -112,7 +112,7 @@ async function uploadVideos(clientKey, timestamp) {
   const testResultsDir = path.join(__dirname, 'test-results');
   if (!fs.existsSync(testResultsDir)) {
     console.log('  ⚠ Kein test-results Ordner – keine Videos vorhanden.');
-    return false;
+    return null;
   }
 
   // Alle video.webm Dateien im test-results Ordner finden
@@ -126,8 +126,8 @@ async function uploadVideos(clientKey, timestamp) {
   }
 
   if (videos.length === 0) {
-    console.log('  ℹ Keine Videos in test-results (Videos werden nur bei Fehlern aufgezeichnet).');
-    return false;
+    console.log('  ℹ Keine Videos (werden nur bei Test-Fehlern aufgezeichnet).');
+    return null;
   }
 
   console.log(`\n  ↑ Lade ${videos.length} Video(s) zu Google Drive hoch...`);
@@ -137,7 +137,7 @@ async function uploadVideos(clientKey, timestamp) {
     auth = await authorize();
   } catch (e) {
     console.log(`  ✗ Google Drive Auth fehlgeschlagen: ${e.message}`);
-    return false;
+    return null;
   }
 
   const drive = google.drive({ version: 'v3', auth });
@@ -152,6 +152,7 @@ async function uploadVideos(clientKey, timestamp) {
     // Unterordner: [timestamp]
     const ts = timestamp || new Date().toISOString().slice(0, 19).replace(/:/g, '-');
     const runFolderId = await getOrCreateFolder(drive, clientFolderId, ts);
+    const folderUrl = `https://drive.google.com/drive/folders/${runFolderId}`;
 
     for (const video of videos) {
       const filename = video.testName.slice(0, 60).replace(/[^a-zA-Z0-9-_äöüÄÖÜ ]/g, '') + '.webm';
@@ -169,11 +170,11 @@ async function uploadVideos(clientKey, timestamp) {
       console.log(`  ✓ Video hochgeladen: ${filename}`);
     }
 
-    console.log(`  ✓ Alle Videos in Google Drive → QA-Videos/${clientKey}/${ts}/`);
-    return true;
+    console.log(`  ✓ Google Drive → QA-Videos/${clientKey}/${ts}/`);
+    return folderUrl;
   } catch (e) {
     console.log(`  ✗ Google Drive Upload fehlgeschlagen: ${e.message}`);
-    return false;
+    return null;
   }
 }
 
