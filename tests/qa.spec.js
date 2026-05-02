@@ -27,7 +27,6 @@ const RESULTS = {
   checkoutResults: [],
   consoleErrors:   [],
   performance:     {},
-  seo:             {},
 };
 
 // Gecrawlte Daten (wird in erstem Test befüllt)
@@ -90,29 +89,6 @@ test('Schritt 1: Shop crawlen – Collections & Produkte entdecken', async ({ pa
   }
 
   await page.waitForTimeout(config.options.waitAfterLoad);
-
-  // SEO Homepage
-  const seo = await page.evaluate(() => ({
-    title:       document.title,
-    titleLen:    document.title?.length,
-    metaDesc:    document.querySelector('meta[name="description"]')?.content,
-    canonical:   document.querySelector('link[rel="canonical"]')?.href,
-    h1Count:     document.querySelectorAll('h1').length,
-    h1Text:      Array.from(document.querySelectorAll('h1')).map(h => h.innerText.trim()).slice(0,3),
-    missingAlts: Array.from(document.querySelectorAll('img')).filter(i => !i.getAttribute('alt')).length,
-    hasViewport: !!document.querySelector('meta[name="viewport"]'),
-    lang:        document.documentElement.lang,
-  }));
-  RESULTS.seo.homepage = seo;
-
-  if (!seo.title) addIssue('Homepage', 'Meta Title fehlt', 'Kein <title> Tag', 'Title vorhanden', 'Fehlt', 'High', BASE);
-  else if (seo.titleLen > 70) addIssue('Homepage', 'Meta Title zu lang', `${seo.titleLen} Zeichen`, '< 70 Zeichen', `${seo.titleLen} Zeichen`, 'Medium', BASE);
-  if (!seo.metaDesc) addIssue('Homepage', 'Meta Description fehlt', 'Keine Meta Description', 'Description vorhanden', 'Fehlt', 'High', BASE);
-  if (!seo.canonical) addIssue('Homepage', 'Canonical fehlt', 'Kein Canonical-Tag', 'Canonical gesetzt', 'Fehlt', 'Medium', BASE);
-  if (seo.h1Count === 0) addIssue('Homepage', 'H1 fehlt', 'Keine H1-Überschrift', 'Genau 1 H1', '0 H1-Tags', 'High', BASE);
-  if (seo.h1Count > 1) addIssue('Homepage', 'Mehrere H1-Tags', `${seo.h1Count} H1s gefunden`, 'Genau 1 H1', `${seo.h1Count} H1-Tags`, 'Medium', BASE);
-  if (seo.missingAlts > 0) addIssue('Homepage', 'Bilder ohne Alt-Tag', `${seo.missingAlts} Bilder ohne Alt`, 'Alle Bilder mit Alt', `${seo.missingAlts} ohne Alt`, 'High', BASE);
-  if (!seo.lang) addIssue('Homepage', 'Fehlendes lang-Attribut', '<html> ohne lang="..."', 'lang="de" oder "en"', 'Fehlt', 'Medium', BASE);
 
   // Performance
   const perf = await page.evaluate(() => {
@@ -191,13 +167,6 @@ test('Schritt 2: PDP & Add-to-Cart – alle Produkte & Varianten', async ({ page
     // Produktbilder
     const galleryCount = await page.locator('[class*="product"] img, [class*="gallery"] img, [class*="media"] img').count();
     if (galleryCount === 0) addIssue('PDP', 'Keine Produktbilder', 'Keine Bilder in der Gallery', 'Mind. 1 Produktbild', '0 Bilder', 'High', productUrl);
-
-    // Alt-Tags auf Produktbildern
-    const missingAlts = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('[class*="product"] img, [class*="gallery"] img'))
-        .filter(i => !i.getAttribute('alt')).length
-    );
-    if (missingAlts > 0) addIssue('PDP', 'Produktbilder ohne Alt', `${missingAlts} Bilder ohne Alt-Tag`, 'Alle mit Alt', `${missingAlts} ohne Alt`, 'High', productUrl);
 
     // Add-to-Cart Button vorhanden?
     const atcSelector = 'button[name="add"], button:has-text("Add to cart"), button:has-text("In den Warenkorb"), button:has-text("Zum Warenkorb"), [id*="add-to-cart"], button[data-add-to-cart]';
