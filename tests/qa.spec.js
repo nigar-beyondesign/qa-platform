@@ -226,8 +226,17 @@ test('Schritt 2: PDP & Add-to-Cart – alle Produkte & Varianten', async ({ page
         const atcSuccess = cartDrawerOpen || redirectedToCart || cartCountChanged !== '0';
 
         if (atcSuccess) {
-          console.log(`     ✓ ${varLabel}: ATC erfolgreich (Preis: ${variantPrice || '?'})`);
-          RESULTS.atcResults.push({ url: productUrl, variant: varLabel, status: 'pass', price: variantPrice });
+          // Variante im Cart-Drawer / Mini-Cart prüfen
+          const cartText = await page.locator('[class*="cart-drawer"], [class*="mini-cart"], [class*="cart__item"], [id*="cart"]').first().innerText({ timeout: 2000 }).catch(() => '');
+          const variantShownInCart = !varLabel || varLabel === 'Default' || cartText.toLowerCase().includes(varLabel.toLowerCase());
+          if (!variantShownInCart && cartText) {
+            addIssue('PDP', 'Variante falsch im Cart', `"${varLabel}" nicht im Cart-Drawer sichtbar`, varLabel, 'Nicht sichtbar', 'High', productUrl,
+              `1. ${productUrl}?variant=${variant.id} öffnen\n2. ATC klicken\n3. Cart-Drawer zeigt nicht "${varLabel}"`);
+            console.log(`     ⚠ ${varLabel}: ATC ok aber Variante nicht im Cart sichtbar`);
+          } else {
+            console.log(`     ✓ ${varLabel}: ATC + Cart-Anzeige korrekt (Preis: ${variantPrice || '?'})`);
+          }
+          RESULTS.atcResults.push({ url: productUrl, variant: varLabel, status: 'pass', price: variantPrice, cartVerified: variantShownInCart });
         } else {
           console.log(`     ✗ ${varLabel}: keine Cart-Reaktion`);
           addIssue('PDP', 'ATC ohne Reaktion', `Variante "${varLabel}" – kein Cart-Feedback nach ATC`, 'Cart-Drawer öffnet oder Redirect', 'Keine Reaktion sichtbar', 'Medium', productUrl,

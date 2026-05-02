@@ -106,63 +106,66 @@ async function discoverProductsFromCollection(page, collectionUrl) {
 
 /**
  * Entdeckt alle Varianten eines Produkts.
+ * Wird auf der bereits geladenen Seite ausgeführt – keine erneute Navigation.
  */
 async function discoverVariants(page, productUrl) {
   try {
-    await page.goto(productUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(config.options.waitAfterLoad);
+    const variants = await page.evaluate(async (url) => {
+      // Methode 1: Shopify product JSON API – zuverlässigste Quelle
+      try {
+        const handle = url.split('/products/')[1]?.split('?')[0];
+        if (handle) {
+          const res = await fetch(`/products/${handle}.js`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.variants?.length) {
+              return data.variants.map(v => ({
+                id:        v.id,
+                title:     v.title || v.option1,
+                available: v.available,
+                price:     v.price,
+                options:   [v.option1, v.option2, v.option3].filter(Boolean),
+              }));
+            }
+          }
+        }
+      } catch {}
 
-    const variants = await page.evaluate(() => {
-      // Methode 1: Shopify product JSON
-      const productJson = window.ShopifyAnalytics?.meta?.product ||
-                          window.__st?.p ||
-                          null;
-      if (productJson?.variants) {
-        return productJson.variants.map(v => ({
-          id:        v.id,
-          title:     v.title,
-          available: v.available,
-          price:     v.price,
-        }));
-      }
-
-      // Methode 2: Aus dem DOM lesen (select oder radio buttons)
+      // Methode 2: DOM select – cross-reference DOM für Availability
       const select = document.querySelector('select[name="id"]');
       if (select) {
         return Array.from(select.options).map(opt => ({
           id:        opt.value,
-          title:     opt.text,
+          title:     opt.text.trim(),
           available: !opt.disabled,
           price:     null,
+          options:   [opt.text.trim()],
         }));
       }
 
-      // Methode 3: JSON in Script-Tag suchen
-      const scripts = Array.from(document.querySelectorAll('script:not([src])'));
-      for (const script of scripts) {
-        const text = script.textContent;
-        if (text.includes('"variants"') && text.includes('"id"')) {
-          try {
-            const match = text.match(/var\s+\w+\s*=\s*(\{.*"variants".*?\});/s) ||
-                          text.match(/(\{"id":\d+.*?"variants":\[.*?\]\})/s);
-            if (match) {
-              const data = JSON.parse(match[1]);
-              if (data.variants) return data.variants.map(v => ({
-                id: v.id, title: v.title, available: v.available, price: v.price
-              }));
-            }
-          } catch {}
-        }
+      // Methode 3: ShopifyAnalytics mit korrektem Feldnamen
+      const productJson = window.ShopifyAnalytics?.meta?.product;
+      if (productJson?.variants?.length) {
+        const availMap = {};
+        document.querySelectorAll('select[name="id"] option').forEach(o => {
+          availMap[o.value] = !o.disabled;
+        });
+        return productJson.variants.map(v => ({
+          id:        v.id,
+          title:     v.public_title || v.title || v.name,
+          available: availMap[String(v.id)] ?? true,
+          price:     v.price,
+          options:   [v.public_title || v.title || v.name],
+        }));
       }
 
-      // Fallback: Keine Varianten erkannt – als single Variant behandeln
-      return [{ id: null, title: 'Default', available: true, price: null }];
-    });
+      return [{ id: null, title: 'Default', available: true, price: null, options: [] }];
+    }, productUrl);
 
     return variants;
 
   } catch (e) {
-    return [{ id: null, title: 'Default', available: true, price: null }];
+    return [{ id: null, title: 'Default', available: true, price: null, options: [] }];
   }
 }
 
