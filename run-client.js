@@ -5,6 +5,7 @@ const { execSync } = require('child_process');
 const fs   = require('fs');
 const path = require('path');
 const { uploadReport } = require('./upload-report.js');
+const { uploadVideos } = require('./gdrive-upload.js');
 
 const clients = {
   'neona':        { config: 'clients/neona.config.js',        name: 'Neona Store' },
@@ -65,6 +66,9 @@ async function runClient(key, client) {
   // Zu Railway hochladen
   console.log('\n  ↑ Lade Report zu Railway hoch...');
   await uploadReport(key, resultsPath);
+
+  // Videos zu Google Drive hochladen
+  await uploadVideos(key, timestamp);
 
   return true;
 }

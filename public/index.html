@@ -452,7 +452,7 @@ function renderRunsTable() {
 function openReport(filename) {
   const r = activeReports.find(x => x.filename === filename);
   if (!r) return;
-  tab('reports', document.querySelectorAll('.tab')[1]);
+  tab('reports', document.querySelectorAll('.tab')[1], true);
 
   const issues = r.issues || [];
   const d = new Date(r.timestamp);
@@ -660,11 +660,14 @@ async function saveClient() {
 }
 
 // ── UTILS ─────────────────────────────────────────────
-function tab(id, el) {
+function tab(id, el, skipAutoLoad = false) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   if(el) el.classList.add('active');
   document.getElementById('tab-overview').style.display = id==='overview' ? '' : 'none';
   document.getElementById('tab-reports').style.display  = id==='reports'  ? '' : 'none';
+  if (id === 'reports' && !skipAutoLoad && activeReports.length && !document.getElementById('report-view').innerHTML.trim()) {
+    openReport(activeReports[0].filename);
+  }
 }
 function showView(id) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
