@@ -26,8 +26,8 @@ function getOAuth2Client() {
     );
   }
   const creds = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
-  const { client_id, client_secret, redirect_uris } = creds.installed || creds.web;
-  return new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+  const { client_id, client_secret } = creds.installed || creds.web;
+  return new google.auth.OAuth2(client_id, client_secret, 'http://localhost:3333');
 }
 
 async function authorize() {
@@ -70,6 +70,14 @@ async function authorize() {
         resolve(auth);
       } catch (e) {
         reject(e);
+      }
+    });
+
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        reject(new Error('Port 3333 bereits belegt. Bitte warten und erneut versuchen.'));
+      } else {
+        reject(err);
       }
     });
 
